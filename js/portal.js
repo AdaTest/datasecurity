@@ -206,7 +206,7 @@
 
   // ═══════════════ CLOUD STATUS ═══════════════
   function checkCloudStatus() {
-    if (typeof supabase !== 'undefined' && supabase) {
+    if (window._supabaseClient) {
       cloudConnected = true;
       updateStatusDot(true);
     } else {

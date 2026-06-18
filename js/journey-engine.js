@@ -343,7 +343,7 @@
       if (!silent) toast('数据已保存到本地');
 
       // Try to save to Supabase if available
-      if (typeof supabase !== 'undefined' && supabase && config.journeyId) {
+      if (window._supabaseClient && config.journeyId) {
         saveToSupabase();
       }
     }, 100);
@@ -352,7 +352,7 @@
   function saveToSupabase() {
     if (!config.journeyId) return;
     setStatus('正在同步到云端...');
-    supabase
+    window._supabaseClient
       .from('journeys')
       .upsert({
         id: config.journeyId,
@@ -375,9 +375,9 @@
   }
 
   function loadFromCloud() {
-    if (typeof supabase === 'undefined' || !supabase || !config.journeyId) return;
+    if (!window._supabaseClient || !config.journeyId) return;
     setStatus('正在从云端加载...');
-    supabase
+    window._supabaseClient
       .from('journeys')
       .select('data, updated_at')
       .eq('id', config.journeyId)
@@ -401,8 +401,8 @@
   }
 
   function subscribeToCloud() {
-    if (typeof supabase === 'undefined' || !supabase || !config.journeyId) return;
-    supabase
+    if (!window._supabaseClient || !config.journeyId) return;
+    window._supabaseClient
       .channel('journey-' + config.journeyId)
       .on('postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'journeys', filter: 'id=eq.' + config.journeyId },
