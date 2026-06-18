@@ -1,0 +1,345 @@
+/* ═══════════════ Portal Styles ═══════════════ */
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: #f1f5f9;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  color: #1e293b;
+  min-height: 100vh;
+}
+
+/* ── Header ── */
+.portal-header {
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  color: #fff;
+  padding: 20px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.portal-header h1 {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.portal-header h1 .icon {
+  font-size: 26px;
+}
+
+.portal-header .header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.portal-header .sync-status {
+  font-size: 11px;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.portal-header .sync-status .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #22c55e;
+}
+
+.portal-header .sync-status .dot.offline {
+  background: #94a3b8;
+}
+
+/* ── Buttons ── */
+.btn {
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-primary {
+  background: #3b82f6;
+  color: #fff;
+}
+.btn-primary:hover { background: #2563eb; }
+
+.btn-outline {
+  background: transparent;
+  color: #cbd5e1;
+  border: 1.5px solid #475569;
+}
+.btn-outline:hover { border-color: #94a3b8; color: #fff; }
+
+.btn-sm { padding: 5px 10px; font-size: 11px; }
+
+/* ── Main Content ── */
+.portal-main {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 28px 20px;
+}
+
+.section-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.section-title::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #e2e8f0;
+}
+
+/* ── Cards Grid ── */
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 18px;
+  margin-bottom: 32px;
+}
+
+.journey-card {
+  background: #fff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+
+.journey-card:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.1);
+  transform: translateY(-2px);
+}
+
+.journey-card .card-accent {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+}
+
+.journey-card .card-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-top: 4px;
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+.journey-card .card-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.journey-card .card-meta span {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.journey-card .card-arrow {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #3b82f6;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.journey-card:hover .card-arrow {
+  background: #3b82f6;
+  color: #fff;
+}
+
+/* ── Upload Card ── */
+.upload-card {
+  border: 2px dashed #cbd5e1;
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 160px;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.upload-card:hover {
+  border-color: #3b82f6;
+  background: rgba(59, 130, 246, 0.03);
+  transform: translateY(-2px);
+}
+
+.upload-card .upload-icon {
+  font-size: 32px;
+  color: #94a3b8;
+  transition: color 0.2s;
+}
+
+.upload-card:hover .upload-icon { color: #3b82f6; }
+
+.upload-card .upload-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.upload-card .upload-hint {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+/* ── Modal ── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(2px);
+}
+
+.modal {
+  background: #fff;
+  border-radius: 12px;
+  padding: 28px;
+  max-width: 500px;
+  width: 90%;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+}
+
+.modal h3 {
+  font-size: 18px;
+  margin-bottom: 16px;
+}
+
+.modal .form-group {
+  margin-bottom: 14px;
+}
+
+.modal label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.modal input, .modal textarea {
+  width: 100%;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 14px;
+  font-family: inherit;
+  transition: border-color 0.15s;
+}
+
+.modal input:focus, .modal textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+.modal .modal-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+/* ── Drop Zone ── */
+.drop-zone {
+  border: 2px dashed #cbd5e1;
+  border-radius: 8px;
+  padding: 28px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: #f8fafc;
+}
+
+.drop-zone:hover, .drop-zone.drag-over {
+  border-color: #3b82f6;
+  background: rgba(59, 130, 246, 0.05);
+}
+
+.drop-zone .dz-icon { font-size: 40px; margin-bottom: 8px; }
+.drop-zone .dz-text { font-size: 14px; font-weight: 600; color: #475569; }
+.drop-zone .dz-hint { font-size: 12px; color: #94a3b8; margin-top: 4px; }
+
+/* ── File input hidden ── */
+#html-file-input { display: none; }
+
+/* ── Toast ── */
+#portal-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1e293b;
+  color: #fff;
+  padding: 8px 20px;
+  border-radius: 6px;
+  font-size: 13px;
+  z-index: 99999;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s;
+}
+#portal-toast.show { opacity: 1; }
+
+/* ── Responsive ── */
+@media (max-width: 640px) {
+  .portal-header { padding: 14px 16px; }
+  .portal-header h1 { font-size: 16px; }
+  .cards-grid { grid-template-columns: 1fr; }
+  .portal-main { padding: 16px 12px; }
+}

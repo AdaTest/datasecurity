@@ -1,0 +1,105 @@
+/* ═══════════════ Shared Journey Styles ═══════════════ */
+/* Extracted from the 4 journey HTML files */
+
+body {
+  background-color: #f8fafc;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  padding-top: 50px !important;
+}
+
+/* ── Toolbar ── */
+#journey-toolbar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
+  background: #fff; color: #334155; display: flex; align-items: center;
+  justify-content: space-between; padding: 6px 16px; gap: 10px;
+  font-size: 13px; border-bottom: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,.06);
+}
+#journey-toolbar .tb-left { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+#journey-toolbar .tb-right { display: flex; align-items: center; gap: 8px; }
+#journey-toolbar button {
+  border: 1.5px solid #cbd5e1; border-radius: 5px; padding: 4px 12px; cursor: pointer;
+  font-size: 12px; font-weight: 600; transition: all .15s;
+  display: inline-flex; align-items: center; gap: 4px;
+  background: #fff; color: #475569;
+}
+#journey-toolbar button:hover { background: #f1f5f9; border-color: #94a3b8; }
+#journey-toolbar .btn-back { border-color: #64748b; color: #64748b; }
+#journey-toolbar .btn-back:hover { background: #f1f5f9; }
+#journey-toolbar .btn-edit { border-color: #3b82f6; color: #3b82f6; }
+#journey-toolbar .btn-edit:hover { background: #eff6ff; }
+#journey-toolbar .btn-edit.active { background: #3b82f6; color: #fff; border-color: #3b82f6; }
+#journey-toolbar .btn-save, #journey-toolbar .btn-sync, #journey-toolbar .btn-reset {
+  border-color: #3b82f6; color: #3b82f6;
+}
+#journey-toolbar .btn-save:hover, #journey-toolbar .btn-sync:hover, #journey-toolbar .btn-reset:hover {
+  background: #eff6ff;
+}
+#journey-toolbar .tb-status { font-size: 11px; color: #94a3b8; }
+
+/* ── Edit-mode hints ── */
+body.editing .editable-text {
+  outline: 1.5px dashed #3b82f6; outline-offset: 2px;
+  border-radius: 3px; padding: 1px 3px;
+  cursor: text; background: rgba(59,130,246,0.04);
+}
+body.editing .editable-card {
+  outline: 1.5px dashed #94a3b8; outline-offset: 1px;
+}
+body.editing .editable-cell {
+  outline: 1.5px dashed #cbd5e1; outline-offset: 1px;
+}
+
+/* ── Inline controls ── */
+.item-ctrl {
+  display: none; position: absolute; top: -8px; right: -4px;
+  z-index: 100; gap: 2px;
+}
+body.editing .item-ctrl { display: flex; }
+.item-ctrl button {
+  width: 18px; height: 18px; border-radius: 50%; border: none;
+  font-size: 10px; line-height: 1; cursor: pointer; display: flex;
+  align-items: center; justify-content: center; font-weight: bold;
+  box-shadow: 0 1px 3px rgba(0,0,0,.15); transition: all .12s;
+}
+.item-ctrl .btn-star { background: #f1f5f9; color: #94a3b8; }
+.item-ctrl .btn-star.on { background: #fef3c7; color: #f59e0b; }
+.item-ctrl .btn-del { background: #fee2e2; color: #ef4444; }
+.item-ctrl .btn-del:hover { background: #ef4444; color: #fff; }
+.item-ctrl .btn-star:hover { background: #f59e0b; color: #fff; }
+
+/* ── Add buttons ── */
+.add-item-btn { display: none; }
+body.editing .add-item-btn {
+  display: flex; align-items: center; justify-content: center;
+  padding: 3px 0; margin-top: 4px;
+  border: 1.5px dashed #cbd5e1; border-radius: 4px;
+  color: #94a3b8; font-size: 11px; cursor: pointer;
+  transition: all .12s; background: transparent;
+}
+body.editing .add-item-btn:hover {
+  border-color: #3b82f6; color: #3b82f6;
+  background: rgba(59,130,246,0.05);
+}
+
+/* ── Stage add buttons ── */
+body.editing .stage-add-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 18px; height: 18px; border-radius: 50%;
+  border: 1px solid #3b82f6; background: #eff6ff;
+  color: #3b82f6; font-size: 14px; font-weight: bold;
+  line-height: 1; cursor: pointer; margin: 0; padding: 0;
+}
+.stage-add-btn { display: none; }
+.stage-sep {
+  display: none; width: 20px; flex-shrink: 0;
+  align-items: center; justify-content: center;
+}
+body.editing .stage-sep { display: flex; }
+
+/* ── Toast ── */
+#journey-toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  background: #1e293b; color: #fff; padding: 8px 20px; border-radius: 6px;
+  font-size: 13px; z-index: 99999; opacity: 0; pointer-events: none; transition: opacity .25s;
+}
+#journey-toast.show { opacity: 1; }

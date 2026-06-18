@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>子旅程1：上架部署——从手工逐条配置到自动化接入与资产纳管</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="../css/journey.css">
+</head>
+<body class="p-4">
+
+<div id="journey-toolbar">
+  <div class="tb-left">
+    <button class="btn-back" onclick="location.href='../index.html'" style="font-size:11px;">← 返回门户</button>
+    <span style="font-size:11px;color:#94a3b8;font-weight:600;">用户旅程编辑器</span>
+  </div>
+  <div class="tb-right">
+    <span class="tb-status" id="tb-status"></span>
+    <button class="btn-edit" id="btn-edit" onclick="JourneyEngine.toggleEditMode()">编辑模式</button>
+    <button class="btn-save" id="btn-save" onclick="JourneyEngine.saveData()">保存</button>
+    <button class="btn-sync" onclick="JourneyEngine.syncYaml()">同步 YAML</button>
+    <button class="btn-reset" onclick="JourneyEngine.resetData()" title="恢复默认数据">↺ 重置</button>
+  </div>
+</div>
+<div id="journey-toast"></div>
+
+<div class="min-w-[1400px] w-full max-w-full overflow-x-auto bg-white border border-gray-200 rounded shadow-sm relative pt-4 font-sans text-slate-800 pb-8" id="journey-main">
+  <div class="mb-3 border-l-[5px] border-blue-600 pl-3 ml-4">
+    <h2 class="text-lg font-black text-slate-800 tracking-wide"><span class="text-slate-500 font-bold mr-2">JOB：</span>子旅程1：上架部署——从手工逐条配置到自动化接入与资产纳管</h2>
+  </div>
+  <div class="flex flex-col border border-slate-200 bg-white rounded shadow-sm" id="journey-table"></div>
+</div>
+
+<script>
+const DEFAULT_DATA = {"phases": [{"name": "Phase 1：多源数据接入", "bg": "bg-slate-700", "stageCount": 3, "important": false}, {"name": "Phase 2：资产自动梳理", "bg": "bg-slate-600", "stageCount": 3, "important": false}, {"name": "Phase 3：流量身份化", "bg": "bg-slate-700", "stageCount": 4, "important": false}], "stages": [{"text": "流量源接入", "important": false}, {"text": "第三方日志对接", "important": false}, {"text": "接入状态可视化", "important": false}, {"text": "资产同步", "important": false}, {"text": "应用智能合并", "important": false}, {"text": "影子资产发现", "important": false}, {"text": "区域IP配置", "important": false}, {"text": "对接用户目录", "important": false}, {"text": "查看访问源清单", "important": false}, {"text": "提升身份覆盖", "important": false}], "doings": [[{"text": "配置流量镜像", "important": false}, {"text": "部署采集Agent", "important": false}, {"text": "确认流量接入", "important": false}], [{"text": "配置Kafka通道", "important": false}, {"text": "映射日志字段", "important": false}, {"text": "验证数据到达", "important": false}], [{"text": "查看接入面板", "important": false}, {"text": "定位异常数据源", "important": false}, {"text": "查看失败原因", "important": false}], [{"text": "对接CMDB接口", "important": false}, {"text": "TCP被动识别", "important": false}, {"text": "CSV手动导入", "important": false}], [{"text": "查看合并结果", "important": false}, {"text": "确认去重资产", "important": false}, {"text": "统一应用视图", "important": false}], [{"text": "对比资产基准", "important": false}, {"text": "查看影子清单", "important": false}, {"text": "标记未纳管资产", "important": false}], [{"text": "按网络区域配IP段", "important": false}, {"text": "标记资产区域归属", "important": false}, {"text": "查看区域分布", "important": false}], [{"text": "对接AD域", "important": false}, {"text": "同步用户信息", "important": false}, {"text": "验证身份映射", "important": false}], [{"text": "查看身份覆盖", "important": false}, {"text": "查看匿名流量", "important": false}, {"text": "评估覆盖效果", "important": false}], [{"text": "导入用户IP清单", "important": false}, {"text": "接入准入数据", "important": false}, {"text": "复验身份效果", "important": false}]], "thinkFeels": [[{"title": "几条命令流量就进来了", "desc": "通过镜像或轻量Agent快速接入网络流量，自动识别HTTP/HTTPS/数据库协议——不用再逐台服务器配置，几分钟就完成过去几天的接入工作", "important": false}], [{"title": "绿盟、飞书、XDLP的日志全通", "desc": "多品牌安全设备（绿盟DLP、深信服XDLP、飞书等）通过Kafka实时通道或文件批量通道标准化接入，字段自动映射——不再因为日志格式不统一就接不进来", "important": false}], [{"title": "哪个源断了、为什么，一眼就清楚", "desc": "每个数据源的接入状态（正常/异常/未授权）一目了然。失败自动提示具体原因（权限不足/网络不通/格式异常），自己就能排查处理，不用每次打电话找厂商研发", "important": false}], [{"title": "CMDB一天自动同步一次，够用了", "desc": "通过API对接CMDB定期自动同步应用/数据库/责任人信息，没有接口的也能TCP被动识别或CSV导入补上——多源资产自动汇入、不再靠人工导出粘贴", "important": false}], [{"title": "同一个应用不再被拆成好几个了", "desc": "多源资产（流量发现的/CMDB登记的/CSV导入的）智能识别为同一应用并自动合并去重——以前同一个应用出现三四个名字，根本不知道哪个是哪个", "important": false}], [{"title": "原来还有这么多藏着的资产", "desc": "流量中活跃但CMDB中不存在的资产自动标为\"未纳管\"，长时间无流量的标为\"失活\"。这些影子资产以前完全不在管控范围内——现在系统性地暴露出来了", "important": false}], [{"title": "哪个区域的流量，一配就清楚了", "desc": "按办公网/生产网/开发网等网络区域配置IP段后，流量自动标注区域归属。一眼看清各区域的访问行为差异——办公网访问生产数据的异常行为一目了然", "important": false}], [{"title": "IP终于对应到人了", "desc": "对接AD/LDAP等用户目录后，流量日志自动关联用户身份——\"10.1.2.3访问了某数据\"变成了\"张三通过某应用访问了某数据\"，告警终于能追溯到具体人了", "important": false}], [{"title": "哪些流量还是\"无名氏\"，一眼就能看到", "desc": "访问源清单展示每条流量的身份化状态——哪些已关联用户、哪些还是匿名。身份覆盖率一目了然，需要补哪些地方的映射很清晰", "important": false}], [{"title": "区域IP+AD+准入一上，覆盖率上来了", "desc": "身份覆盖不够时，导入用户IP绑定清单、接入终端准入数据等多种方式补充身份映射——以前覆盖率三四成、告警找不到人，现在能推到八九成以上", "important": false}]], "emotions": [{"score": "4.5", "label": "高效", "important": false}, {"score": "4.5", "label": "满意", "important": false}, {"score": "4.5", "label": "从容", "important": false}, {"score": "4.5", "label": "省心", "important": false}, {"score": "4.5", "label": "清晰", "important": false}, {"score": "3.5", "label": "警觉", "important": false}, {"score": "4.0", "label": "满意", "important": false}, {"score": "5.0", "label": "惊喜", "important": false}, {"score": "4.0", "label": "清晰", "important": false}, {"score": "4.5", "label": "满意", "important": false}], "needs": [[{"title": "流量快速接入", "desc": "数据安全运营负责人 需要一种方法来 通过镜像或Agent快速接入网络流量并自动识别协议类型 然后 将接入时间从天级缩至分钟级、不依赖厂商现场支持", "type": "blue", "important": false}], [{"title": "多品牌日志标准化接入", "desc": "数据安全运营负责人 需要一种方法来 将不同品牌安全设备的日志通过Kafka实时和文件批量双通道标准化接入 然后 6-7类安全设备的日志统一汇聚、不再逐个登录查看", "type": "blue", "important": false}], [{"title": "接入状态自诊断", "desc": "数据安全运营负责人 需要一种方法来 直观看到每条数据源的接入状态并自动获取失败具体原因 然后 自行排查或直接找内部团队处理、无需每次联系厂商研发", "type": "blue", "important": false}], [{"title": "多源资产自动同步", "desc": "数据安全运营负责人 需要一种方法来 通过CMDB对接、被动识别和文件导入等多渠道自动汇集资产信息 然后 资产清单始终保持最新、无需每次手工导出导入", "type": "blue", "important": false}], [{"title": "应用资产去重合并", "desc": "数据安全运营负责人 需要一种方法来 自动识别并合并不同来源的同一应用资产 然后 获得一致且可信的统一应用资产视图、不再因为重复条目而困惑", "type": "blue", "important": false}], [{"title": "系统性发现影子资产", "desc": "数据安全运营负责人 需要一种方法来 自动对比流量资产和CMDB基准并标记纳管状态 然后 系统性消除影子资产带来的安全盲区、推动纳管或下线处置", "type": "blue", "important": false}], [{"title": "区域级流量标注", "desc": "数据安全运营负责人 需要一种方法来 通过IP段配置自动标注流量所属网络区域 然后 快速区分不同区域的数据访问行为模式", "type": "blue", "important": false}], [{"title": "流量用户身份自动映射", "desc": "数据安全运营负责人 需要一种方法来 通过对接用户目录让流量日志自动关联到具体用户 然后 每条告警都能追溯到人、不再面对匿名的IP告警", "type": "blue", "important": false}], [{"title": "身份覆盖可视化", "desc": "数据安全运营负责人 需要一种方法来 直观查看当前流量身份化覆盖率和匿名流量清单 然后 明确哪些区域的流量还需补充身份映射", "type": "blue", "important": false}], [{"title": "多渠道补充身份映射", "desc": "数据安全运营负责人 需要一种方法来 通过导入IP清单、接入准入数据等多种方式补充身份映射 然后 将流量身份覆盖率从三四成提升到八九成以上", "type": "blue", "important": false}]]};
+</script>
+
+<script src="../js/journey-engine.js"></script>
+<script src="../js/supabase-client.js"></script>
+<script>
+(function initJourney() {
+  if (typeof JourneyEngine === 'undefined') { setTimeout(initJourney, 50); return; }
+  JourneyEngine.init('journey-table', {
+    journeyId: 'sub1',
+    storageKey: 'jm_455472',
+    defaultData: DEFAULT_DATA,
+    title: '子旅程1：上架部署——从手工逐条配置到自动化接入与资产纳管'
+  });
+})();
+</script>
+
+</body>
+</html>

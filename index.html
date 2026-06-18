@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>数据安全未来旅程 · 协作平台</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    /* Inline critical styles for instant render */
+    body { background: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; color: #1e293b; }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════ HEADER ═══════════ -->
+<header class="portal-header">
+  <h1>
+    <span class="icon">🗺️</span>
+    数据安全未来旅程
+  </h1>
+  <div class="header-right">
+    <div class="sync-status">
+      <span class="dot"></span>
+      <span class="status-text">离线模式</span>
+    </div>
+    <button class="btn btn-outline btn-sm" onclick="syncAllToCloud()" title="手动同步所有旅程到云端">☁️ 同步</button>
+  </div>
+</header>
+
+<!-- ═══════════ MAIN ═══════════ -->
+<main class="portal-main">
+  <div class="section-title">📋 用户旅程地图</div>
+  <div class="cards-grid" id="cards-grid"></div>
+</main>
+
+<div id="portal-toast"></div>
+
+<input type="file" id="html-file-input" accept=".html,.htm" style="display:none">
+
+<script src="js/supabase-client.js"></script>
+<script src="js/portal.js"></script>
+
+<script>
+  // Manual cloud sync
+  function syncAllToCloud() {
+    if (typeof supabase === 'undefined' || !supabase) {
+      alert('云端未连接。部署到 Netlify 并配置 Supabase 后即可使用云同步。\n\n当前为离线模式，数据保存在浏览器本地。');
+      return;
+    }
+    alert('同步功能需要 Supabase 配置。请参考 README.md 设置。');
+  }
+</script>
+
+</body>
+</html>

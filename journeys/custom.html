@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>自定义旅程</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="../css/journey.css">
+</head>
+<body class="p-4">
+
+<div id="journey-toolbar">
+  <div class="tb-left">
+    <button class="btn-back" onclick="location.href='../index.html'" style="font-size:11px;">← 返回门户</button>
+    <span style="font-size:11px;color:#94a3b8;font-weight:600;">用户旅程编辑器</span>
+  </div>
+  <div class="tb-right">
+    <span class="tb-status" id="tb-status"></span>
+    <button class="btn-edit" id="btn-edit" onclick="JourneyEngine.toggleEditMode()">编辑模式</button>
+    <button class="btn-save" id="btn-save" onclick="JourneyEngine.saveData()">保存</button>
+    <button class="btn-sync" onclick="JourneyEngine.syncYaml()">同步 YAML</button>
+  </div>
+</div>
+<div id="journey-toast"></div>
+
+<div class="min-w-[1400px] w-full max-w-full overflow-x-auto bg-white border border-gray-200 rounded shadow-sm relative pt-4 font-sans text-slate-800 pb-8" id="journey-main">
+  <div class="mb-3 border-l-[5px] border-blue-600 pl-3 ml-4">
+    <h2 class="text-lg font-black text-slate-800 tracking-wide"><span class="text-slate-500 font-bold mr-2">JOB：</span><span id="journey-title">自定义旅程</span></h2>
+  </div>
+  <div class="flex flex-col border border-slate-200 bg-white rounded shadow-sm" id="journey-table"></div>
+</div>
+
+<script src="../js/journey-engine.js"></script>
+<script src="../js/supabase-client.js"></script>
+<script>
+  // Load journey from localStorage (uploaded HTML)
+  var id = new URLSearchParams(location.search).get('id');
+  var DEFAULT_DATA = { "phases": [], "stages": [], "doings": [], "thinkFeels": [], "emotions": [], "needs": [] };
+
+  if (id) {
+    var html = localStorage.getItem('journey_html_' + id);
+    if (html) {
+      // Extract DEFAULT_DATA from the stored HTML
+      var match = html.match(/const\s+DEFAULT_DATA\s*=\s*(\{[\s\S]*?\});/);
+      if (!match) match = html.match(/DEFAULT_DATA\s*=\s*(\{[\s\S]*?\});/);
+      if (match) {
+        try { DEFAULT_DATA = JSON.parse(match[1]); } catch(e) {}
+      }
+      // Extract title
+      var tMatch = html.match(/<title>([^<]+)<\/title>/);
+      if (tMatch) document.getElementById('journey-title').textContent = tMatch[1];
+    }
+  }
+
+  // Wait for supabase-client to be ready, then init
+  function doInit() {
+    JourneyEngine.init('journey-table', {
+      journeyId: id || 'custom',
+      storageKey: 'jm_custom_' + (id || '0'),
+      defaultData: DEFAULT_DATA,
+      title: document.getElementById('journey-title').textContent
+    });
+  }
+
+  if (typeof supabase !== 'undefined' || document.readyState === 'complete') {
+    doInit();
+  } else {
+    document.addEventListener('supabase-ready', doInit);
+  }
+</script>
+
+</body>
+</html>
