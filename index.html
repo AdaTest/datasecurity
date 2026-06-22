@@ -37,18 +37,24 @@
 
 <input type="file" id="html-file-input" accept=".html,.htm" style="display:none">
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="js/supabase-client.js"></script>
+<script>
+  // API 配置 — 本地开发用 localhost:3000，生产环境用相对路径 /api（Netlify 代理）
+  window.API_BASE_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    ? 'http://localhost:3000/api'
+    : '/api';
+</script>
+<script src="js/api-client.js"></script>
 <script src="js/portal.js"></script>
 
 <script>
   // Manual cloud sync
   function syncAllToCloud() {
-    if (typeof supabase === 'undefined' || !supabase) {
-      alert('云端未连接。部署到 Netlify 并配置 Supabase 后即可使用云同步。\n\n当前为离线模式，数据保存在浏览器本地。');
+    if (!window._apiClient || !window._apiClient.isConnected()) {
+      alert('云端未连接。请确保后端 API 服务已启动。\n\n当前为离线模式，数据保存在浏览器本地。');
       return;
     }
-    alert('同步功能需要 Supabase 配置。请参考 README.md 设置。');
+    // 触发所有旅程保存（通过 localStorage → 下次打开旅程编辑时会自动同步）
+    alert('请打开各旅程页面进行编辑保存，系统会自动同步到云端。');
   }
 </script>
 

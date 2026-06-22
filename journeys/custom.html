@@ -30,55 +30,51 @@
   <div class="flex flex-col border border-slate-200 bg-white rounded shadow-sm" id="journey-table"></div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="../js/supabase-client.js"></script>
+<script>
+  window.API_BASE_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    ? 'http://localhost:3000/api'
+    : '/api';
+</script>
+<script src="../js/api-client.js"></script>
 <script src="../js/journey-engine.js"></script>
 <script>
-  // Load journey from localStorage (uploaded HTML)
-  var id = new URLSearchParams(location.search).get('id');
+  // Load journey from API (id stored in sessionStorage by portal card click)
+  var id = new URLSearchParams(location.search).get('id') || sessionStorage.getItem('current_journey_id');
+  var storageKey = 'jm_custom_' + (id || '0');
   var DEFAULT_DATA = { "phases": [], "stages": [], "doings": [], "thinkFeels": [], "emotions": [], "needs": [] };
 
-  if (id) {
-    var html = localStorage.getItem('journey_html_' + id);
-    if (html) {
-      // Use non-greedy regex — DEFAULT_DATA is a single-line JSON object
-      var match = html.match(/const\s+DEFAULT_DATA\s*=\s*(\{[\s\S]*?\});/);
-      if (!match) match = html.match(/DEFAULT_DATA\s*=\s*(\{[\s\S]*?\});/);
-      if (match) {
-        try { DEFAULT_DATA = JSON.parse(match[1]); } catch(e) {
-          // Recovery: try cleaning common issues
-          try {
-            var cleaned = match[1]
-              .replace(/,(\s*[}\]])/g, '$1')
-              .replace(/'/g, '"');
-            DEFAULT_DATA = JSON.parse(cleaned);
-          } catch(e2) {}
-        }
-      }
-      // Extract title
-      var tMatch = html.match(/<title>([^<]+)<\/title>/);
-      if (tMatch) document.getElementById('journey-title').textContent = tMatch[1];
-    }
-  }
-
-  // Wait for engine to be ready, then init
-  function doInit() {
-    // Clear stale localStorage data to ensure fresh HTML data is used
-    // (the portal already cleared it, but extra safety here)
-    var storageKey = 'jm_custom_' + (id || '0');
+  function initEngine(data, title) {
+    document.getElementById('journey-title').textContent = title || '自定义旅程';
     JourneyEngine.init('journey-table', {
       journeyId: id || 'custom',
       storageKey: storageKey,
-      defaultData: DEFAULT_DATA,
-      title: document.getElementById('journey-title').textContent
+      defaultData: data,
+      title: title || '自定义旅程'
     });
   }
 
-  if (typeof supabase !== 'undefined' || document.readyState === 'complete') {
-    doInit();
-  } else {
-    document.addEventListener('supabase-ready', doInit);
+  function bootstrap() {
+    if (typeof JourneyEngine === 'undefined') { setTimeout(bootstrap, 50); return; }
+    if (!id || !window._apiClient) { initEngine(DEFAULT_DATA, '自定义旅程'); return; }
+
+    var statusEl = document.getElementById('tb-status');
+    if (statusEl) statusEl.textContent = '正在从云端加载...';
+
+    window._apiClient.getJourney(id)
+      .then(function(res) {
+        if (res.journey && res.journey.data) {
+          initEngine(res.journey.data, res.journey.title);
+        } else {
+          initEngine(DEFAULT_DATA, '自定义旅程');
+        }
+      })
+      .catch(function(err) {
+        console.warn('API load failed:', err.message);
+        initEngine(DEFAULT_DATA, '自定义旅程');
+      });
   }
+
+  bootstrap();
 </script>
 
 </body>

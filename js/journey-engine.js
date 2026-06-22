@@ -186,6 +186,45 @@
     applyEditMode();
   }
 
+  // ═══════════════ EDITABLE TITLE ═══════════════
+  function setupEditableTitle() {
+    var h2 = document.querySelector('#journey-main h2');
+    if (!h2) return;
+
+    var titleSpan = h2.querySelector('.journey-title-text');
+    if (!titleSpan) {
+      // Get text after "JOB：" span
+      var jobSpan = h2.querySelector('span');
+      var textContent = '';
+      if (jobSpan) {
+        var range = document.createRange();
+        range.selectNodeContents(h2);
+        range.setStartAfter(jobSpan);
+        textContent = range.toString().trim();
+        range.deleteContents();
+        titleSpan = document.createElement('span');
+        titleSpan.className = 'journey-title-text editable-text';
+        titleSpan.contentEditable = 'false';
+        titleSpan.textContent = textContent || config.title || '';
+        range.insertNode(titleSpan);
+      }
+    } else {
+      titleSpan.classList.add('editable-text');
+      titleSpan.contentEditable = 'false';
+    }
+
+    // Wire up event handlers on the title span
+    if (titleSpan) {
+      titleSpan.onblur = function() { onTextBlur(titleSpan); };
+      titleSpan.onkeydown = function(event) { if (event.key === 'Enter') { event.preventDefault(); titleSpan.blur(); } };
+    }
+
+    // Sync initial text from config.title if span is empty
+    if (titleSpan && !titleSpan.textContent.trim() && config.title) {
+      titleSpan.textContent = config.title;
+    }
+  }
+
   // ═══════════════ EDIT MODE ═══════════════
   function toggleEditMode() {
     if (editMode && hasUnsavedChanges) {
@@ -211,11 +250,20 @@
     if (editMode) document.body.classList.add('editing');
     else document.body.classList.remove('editing');
     document.querySelectorAll('.editable-text').forEach(function(el) { el.contentEditable = editMode ? 'true' : 'false'; });
+    var titleSpan = document.querySelector('.journey-title-text');
+    if (titleSpan) titleSpan.contentEditable = editMode ? 'true' : 'false';
   }
 
   // ═══════════════ TEXT CHANGE ═══════════════
   function onTextBlur(el) {
     if (!editMode) return;
+    // Handle title edit
+    if (el.classList.contains('journey-title-text')) {
+      config.title = el.textContent.trim();
+      hasUnsavedChanges = true;
+      setStatus('已修改标题 (未保存)');
+      return;
+    }
     var section = el.dataset.section;
     var field = el.dataset.field || 'text';
     var newVal = el.textContent.trim();
@@ -342,9 +390,9 @@
       setStatus('已保存 ' + new Date().toLocaleTimeString());
       if (!silent) toast('数据已保存到本地');
 
-      // Try to save to Supabase if available
-      if (window._supabaseClient && config.journeyId) {
-        saveToSupabase();
+      // Try to save to cloud via API
+      if (window._apiClient && config.journeyId) {
+        saveToCloud();
       }
 
       // Try to write back to HTML file
@@ -352,45 +400,35 @@
     }, 100);
   }
 
-  function saveToSupabase() {
-    if (!config.journeyId) return;
+  function saveToCloud() {
+    if (!config.journeyId || !window._apiClient) return;
     setStatus('正在同步到云端...');
-    window._supabaseClient
-      .from('journeys')
-      .upsert({
-        id: config.journeyId,
-        title: config.title || config.journeyId,
-        data: appData,
-        updated_at: new Date().toISOString()
-      })
-      .then(function(res) {
-        if (res.error) {
-          console.warn('Supabase save failed:', res.error);
-          setStatus('已保存到本地 (云端同步失败)');
-        } else {
-          setStatus('已保存到本地 + 云端 ' + new Date().toLocaleTimeString());
-        }
+    window._apiClient.updateJourney(config.journeyId, config.title || config.journeyId, appData)
+      .then(function() {
+        setStatus('已保存到本地 + 云端 ' + new Date().toLocaleTimeString());
       })
       .catch(function(err) {
-        console.warn('Supabase save error:', err);
-        setStatus('已保存到本地 (云端同步失败)');
+        if (err.status === 409) {
+          // 版本冲突 — handleConflict 会弹出对话框处理
+          console.warn('版本冲突，等待用户选择...');
+          setStatus('版本冲突 (待处理)');
+        } else {
+          console.warn('云端同步失败:', err.message);
+          setStatus('已保存到本地 (云端同步失败)');
+        }
       });
   }
 
   function loadFromCloud() {
-    if (!window._supabaseClient || !config.journeyId) return;
+    if (!window._apiClient || !config.journeyId) return;
     setStatus('正在从云端加载...');
-    window._supabaseClient
-      .from('journeys')
-      .select('data, updated_at')
-      .eq('id', config.journeyId)
-      .single()
+    window._apiClient.getJourney(config.journeyId)
       .then(function(res) {
-        if (res.data && res.data.data) {
+        if (res.journey && res.journey.data) {
           var localUpdated = localStorage.getItem(config.storageKey + '_cloud_ts');
-          var cloudUpdated = res.data.updated_at;
+          var cloudUpdated = res.journey.updated_at;
           if (localUpdated && cloudUpdated && localUpdated === cloudUpdated) return;
-          appData = res.data.data;
+          appData = res.journey.data;
           ensureStructure();
           localStorage.setItem(config.storageKey, JSON.stringify(appData));
           localStorage.setItem(config.storageKey + '_cloud_ts', cloudUpdated || '');
@@ -399,24 +437,28 @@
         }
       })
       .catch(function(err) {
-        console.warn('Supabase load error:', err);
+        console.warn('云端加载失败:', err.message);
       });
   }
 
   function subscribeToCloud() {
-    if (!window._supabaseClient || !config.journeyId) return;
-    window._supabaseClient
-      .channel('journey-' + config.journeyId)
-      .on('postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'journeys', filter: 'id=eq.' + config.journeyId },
-        function(payload) {
-          if (remoteUpdatePending) return;
-          var newData = payload.new.data;
-          if (!newData) return;
+    if (!window._apiClient || !config.journeyId) return;
+    window._apiClient.subscribe(function(eventType, payload) {
+      if (eventType !== 'updated') return;
+      if (payload.id !== config.journeyId) return;
+      if (remoteUpdatePending) return;
+
+      // 获取远程最新数据
+      window._apiClient.getJourney(config.journeyId)
+        .then(function(res) {
+          if (!res.journey || !res.journey.data) return;
+          var newData = res.journey.data;
+
           remoteUpdatePending = true;
           var currentJSON = JSON.stringify(appData);
           var remoteJSON = JSON.stringify(newData);
           if (currentJSON === remoteJSON) { remoteUpdatePending = false; return; }
+
           appData = deepClone(newData);
           ensureStructure();
           renderAll();
@@ -424,10 +466,55 @@
           toast('📡 数据已被他人更新，已自动同步');
           setStatus('已自动同步远程更新');
           remoteUpdatePending = false;
-        }
-      )
-      .subscribe();
+        })
+        .catch(function() {
+          remoteUpdatePending = false;
+        });
+    });
   }
+
+  // ═══════════════ CONFLICT HANDLER ═══════════════
+  function handleConflict(detail) {
+    if (detail.journeyId !== config.journeyId) return;
+
+    var msg = '⚠️ 版本冲突\n\n此旅程已被其他用户修改。\n\n'
+            + '对方版本: ' + detail.currentVersion + '\n'
+            + '你的版本: ' + detail.ourVersion + '\n\n'
+            + '请选择处理方式：';
+
+    // 简单粗暴的弹窗处理（后续可改为美化对话框）
+    var choice = prompt(msg + '\n\n[1] 使用对方版本  [2] 覆盖对方版本  [取消] 稍后处理', '1');
+
+    if (choice === '1') {
+      // 使用对方最新版本
+      if (detail.currentData) {
+        appData = deepClone(detail.currentData);
+        ensureStructure();
+        renderAll();
+        localStorage.setItem(config.storageKey, JSON.stringify(appData));
+        window._apiClient.setVersion(config.journeyId, detail.currentVersion);
+        toast('✅ 已加载对方最新版本');
+        setStatus('已同步对方版本');
+      }
+    } else if (choice === '2') {
+      // 覆盖：用当前数据以最新 version 重新保存
+      window._apiClient.setVersion(config.journeyId, detail.currentVersion);
+      window._apiClient.updateJourney(config.journeyId, config.title || config.journeyId, appData)
+        .then(function() {
+          toast('⚠️ 已覆盖对方版本（你的修改已保存）');
+          setStatus('已覆盖对方版本');
+        })
+        .catch(function() {
+          toast('❌ 覆盖失败，请重试');
+        });
+    }
+    // 其他情况：取消，用户自行处理
+  }
+
+  // 监听冲突事件
+  document.addEventListener('journey-conflict', function(e) {
+    handleConflict(e.detail);
+  });
 
   // ═══════════════ YAML ═══════════════
   function yamlStr(s) {
@@ -445,8 +532,7 @@
     lines.push('# 未来旅程数据文件（YAML）');
     lines.push('# ============================================================');
     lines.push('');
-    var titleEl = document.querySelector('h2');
-    lines.push('title: ' + yamlStr(titleEl ? titleEl.textContent.replace(/^JOB[：:]\s*/, '').trim() : ''));
+    lines.push('title: ' + yamlStr(config.title || ''));
     lines.push('');
     lines.push('phases:');
     var si = 0;
@@ -593,6 +679,7 @@
 
     ensureStructure();
     renderAll();
+    setupEditableTitle();
     setStatus('就绪 — 点击「编辑模式」开始编辑');
 
     // Async: try to load from cloud
