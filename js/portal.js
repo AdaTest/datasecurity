@@ -59,21 +59,25 @@
   }
 
   function loadJourneys() {
+    // Load ALL hidden journey IDs (both built-in and uploaded)
     var hidden = [];
     try {
       var h = localStorage.getItem('portal_hidden_journeys');
       if (h) hidden = JSON.parse(h);
     } catch(e) {}
 
+    // Built-in journeys, excluding hidden ones
     journeys = BUILTIN_JOURNEYS
       .filter(function(j) { return hidden.indexOf(j.id) === -1; })
       .map(function(j) { return Object.assign({}, j); });
 
+    // Cached uploaded journeys, excluding hidden ones
     try {
       var saved = localStorage.getItem('portal_journeys');
       if (saved) {
         var extra = JSON.parse(saved);
         extra.forEach(function(j) {
+          if (hidden.indexOf(j.id) !== -1) return; // Skip deleted
           if (!journeys.find(function(b) { return b.id === j.id; })) {
             journeys.push(j);
           }
@@ -128,24 +132,27 @@
   function deleteJourney(id) {
     var j = journeys.find(function(b) { return b.id === id; });
     if (!j) return;
-    if (!confirm('确定要删除旅程 "' + j.title + '" 吗？上传的旅程将永久删除。')) return;
+    if (!confirm('确定要删除旅程 "' + j.title + '" 吗？')) return;
+
+    // Track as hidden (works for both built-in and uploaded)
+    var hidden = [];
+    try {
+      var h = localStorage.getItem('portal_hidden_journeys');
+      if (h) hidden = JSON.parse(h);
+    } catch(e) {}
+    if (hidden.indexOf(id) === -1) hidden.push(id);
+    localStorage.setItem('portal_hidden_journeys', JSON.stringify(hidden));
 
     var isBuiltin = BUILTIN_JOURNEYS.some(function(b) { return b.id === id; });
-    if (isBuiltin) {
-      var hidden = [];
-      try {
-        var h = localStorage.getItem('portal_hidden_journeys');
-        if (h) hidden = JSON.parse(h);
-      } catch(e) {}
-      if (hidden.indexOf(id) === -1) hidden.push(id);
-      localStorage.setItem('portal_hidden_journeys', JSON.stringify(hidden));
-    } else {
+    if (!isBuiltin) {
       localStorage.removeItem('journey_html_' + id);
       localStorage.removeItem('jm_custom_' + id);
       localStorage.removeItem('jm_custom_' + id + '_cloud_ts');
       // Also delete from Supabase
       if (window._supabaseClient) {
-        window._supabaseClient.from('journeys').delete().eq('id', id).then(function() {});
+        window._supabaseClient.from('journeys').delete().eq('id', id).then(function(res) {
+          if (res.error) console.warn('Supabase delete failed:', res.error);
+        });
       }
     }
 
@@ -332,6 +339,13 @@
   // Load uploaded journeys from Supabase
   function loadFromCloud() {
     if (!window._supabaseClient) return;
+    // Load hidden list to skip deleted journeys
+    var hidden = [];
+    try {
+      var h = localStorage.getItem('portal_hidden_journeys');
+      if (h) hidden = JSON.parse(h);
+    } catch(e) {}
+
     window._supabaseClient.from('journeys').select('*').then(function(res) {
       if (res.error || !res.data) return;
       var ids = {};
@@ -339,7 +353,7 @@
       var changed = false;
       res.data.forEach(function(record) {
         if (ids[record.id]) return;
-        // Skip built-in journeys
+        if (hidden.indexOf(record.id) !== -1) return; // Skip deleted
         if (BUILTIN_JOURNEYS.some(function(bj) { return bj.id === record.id; })) return;
         var data = record.data || {};
         journeys.push({
