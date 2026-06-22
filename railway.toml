@@ -1,0 +1,6 @@
+# Railway 部署配置 — FastAPI 后端
+[build]
+  builder = "nixpacks"
+
+[deploy]
+  startCommand = "cd server && uvicorn main:app --host 0.0.0.0 --port $PORT"

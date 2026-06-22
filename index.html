@@ -38,10 +38,10 @@
 <input type="file" id="html-file-input" accept=".html,.htm" style="display:none">
 
 <script>
-  // API 配置 — 本地开发用 localhost:3000，生产环境用相对路径 /api（Netlify 代理）
+  // API 配置 — 本地开发用 localhost:3000，生产环境用 Railway 后端
   window.API_BASE_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
     ? 'http://localhost:3000/api'
-    : '/api';
+    : 'https://datasecurity-api.up.railway.app/api';
 </script>
 <script src="js/api-client.js"></script>
 <script src="js/portal.js"></script>
