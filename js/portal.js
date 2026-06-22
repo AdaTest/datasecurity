@@ -58,19 +58,16 @@
   }
 
   function loadJourneys() {
-    // Load hidden built-in journeys (soft delete)
     var hidden = [];
     try {
       var h = localStorage.getItem('portal_hidden_journeys');
       if (h) hidden = JSON.parse(h);
     } catch(e) {}
 
-    // Start with built-in journeys, excluding hidden ones
     journeys = BUILTIN_JOURNEYS
       .filter(function(j) { return hidden.indexOf(j.id) === -1; })
       .map(function(j) { return Object.assign({}, j); });
 
-    // Add user-uploaded journeys from localStorage
     try {
       var saved = localStorage.getItem('portal_journeys');
       if (saved) {
@@ -98,12 +95,12 @@
 
     var html = '';
 
-    // Journey cards
     journeys.forEach(function(j) {
       var isBuiltin = BUILTIN_JOURNEYS.some(function(b) { return b.id === j.id; });
       html +=
         '<div class="journey-card" onclick="location.href=\'' + j.file + '\'">' +
           '<button class="card-delete-btn" title="删除此旅程" onclick="event.stopPropagation();deleteJourney(\'' + j.id + '\')">×</button>' +
+          (isBuiltin ? '<button class="card-copy-btn" title="复制当前编辑版" onclick="event.stopPropagation();copyBuiltinJourney(\'' + j.id + '\')">📋</button>' : '') +
           '<div class="card-accent" style="background:' + j.color + '"></div>' +
           '<div class="card-title">' + escHtml(j.title) + '</div>' +
           '<div class="card-meta">' +
@@ -134,7 +131,6 @@
 
     var isBuiltin = BUILTIN_JOURNEYS.some(function(b) { return b.id === id; });
     if (isBuiltin) {
-      // Track hidden built-in journeys
       var hidden = [];
       try {
         var h = localStorage.getItem('portal_hidden_journeys');
@@ -143,7 +139,6 @@
       if (hidden.indexOf(id) === -1) hidden.push(id);
       localStorage.setItem('portal_hidden_journeys', JSON.stringify(hidden));
     } else {
-      // Hard delete: remove all associated data
       localStorage.removeItem('journey_html_' + id);
       localStorage.removeItem('jm_custom_' + id);
       localStorage.removeItem('jm_custom_' + id + '_cloud_ts');
@@ -155,8 +150,38 @@
     portalToast('已删除旅程 "' + j.title + '"');
   }
 
-  // Expose to global scope for onclick handlers
   window.deleteJourney = deleteJourney;
+
+  // ═══════════════ COPY BUILTIN ═══════════════
+  function copyBuiltinJourney(builtinId) {
+    var bj = BUILTIN_JOURNEYS.find(function(b) { return b.id === builtinId; });
+    if (!bj) return;
+
+    // Get current data (including any edits from localStorage)
+    var editedData = localStorage.getItem(bj.storageKey);
+    var newId = 'custom_' + Date.now();
+
+    if (editedData) {
+      // Copy the edited data
+      localStorage.setItem('jm_custom_' + newId, editedData);
+      console.log('📋 已复制内置旅程"' + bj.title + '"的当前编辑版');
+    }
+
+    var newJourney = {
+      id: newId,
+      title: bj.title + ' (副本)',
+      file: 'journeys/custom.html?id=' + newId,
+      phases: bj.phases,
+      stages: bj.stages,
+      color: bj.color
+    };
+    journeys.push(newJourney);
+    saveJourneyList();
+    renderCards();
+    portalToast('✅ 已创建副本，包含当前所有编辑');
+  }
+
+  window.copyBuiltinJourney = copyBuiltinJourney;
 
   // ═══════════════ UPLOAD ═══════════════
   function setupUpload() {
@@ -193,18 +218,16 @@
       var id = 'custom_' + Date.now();
       var fileName = file.name.replace(/\.(html|htm)$/i, '');
 
-      // Save the HTML to localStorage for custom.html to load
+      // Save HTML to localStorage
       localStorage.setItem('journey_html_' + id, html);
-      // CRITICAL: save the actual uploaded data as the journey data,
-      // so custom.html always loads exactly what was in the uploaded file
+
+      // Extract and save uploaded DEFAULT_DATA as journey data
       var dataMatch = html.match(/const\s+DEFAULT_DATA\s*=\s*(\{[\s\S]*?\});/);
       if (dataMatch) {
         try {
           var fullData = JSON.parse(dataMatch[1]);
           localStorage.setItem('jm_custom_' + id, JSON.stringify(fullData));
-        } catch(ex) {
-          console.warn('Failed to save uploaded journey data:', ex);
-        }
+        } catch(ex) {}
       }
 
       var newJourney = {
@@ -224,7 +247,6 @@
   }
 
   function parseJourneyHtml(html) {
-    // Extract DEFAULT_DATA — use non-greedy match (DEFAULT_DATA is single-line JSON)
     var match = html.match(/const\s+DEFAULT_DATA\s*=\s*(\{[\s\S]*?\});/);
     if (!match) {
       match = html.match(/DEFAULT_DATA\s*=\s*(\{[\s\S]*?\});/);
@@ -239,12 +261,10 @@
         stages: data.stages ? data.stages.length : 3
       };
     } catch(e) {
-      console.warn('JSON parse failed for DEFAULT_DATA, trying to recover...');
-      // Try to fix common issues: trailing commas, etc.
       try {
         var cleaned = match[1]
-          .replace(/,(\s*[}\]])/g, '$1')  // remove trailing commas
-          .replace(/'/g, '"');            // replace single quotes
+          .replace(/,(\s*[}\]])/g, '$1')
+          .replace(/'/g, '"');
         var data = JSON.parse(cleaned);
         return {
           title: extractTitle(html),
@@ -252,7 +272,6 @@
           stages: data.stages ? data.stages.length : 3
         };
       } catch(e2) {
-        console.warn('Recovery also failed:', e2);
         return null;
       }
     }
@@ -308,7 +327,7 @@
     el.textContent = msg;
     el.classList.add('show');
     clearTimeout(el._to);
-    el._to = setTimeout(function() { el.classList.remove('show'); }, 2500);
+    el._to = setTimeout(function() { el.classList.remove('show'); }, 4000);
   }
 
   // ═══════════════ START ═══════════════
