@@ -41,11 +41,19 @@
   if (id) {
     var html = localStorage.getItem('journey_html_' + id);
     if (html) {
-      // Extract DEFAULT_DATA from the stored HTML
+      // Use non-greedy regex — DEFAULT_DATA is a single-line JSON object
       var match = html.match(/const\s+DEFAULT_DATA\s*=\s*(\{[\s\S]*?\});/);
       if (!match) match = html.match(/DEFAULT_DATA\s*=\s*(\{[\s\S]*?\});/);
       if (match) {
-        try { DEFAULT_DATA = JSON.parse(match[1]); } catch(e) {}
+        try { DEFAULT_DATA = JSON.parse(match[1]); } catch(e) {
+          // Recovery: try cleaning common issues
+          try {
+            var cleaned = match[1]
+              .replace(/,(\s*[}\]])/g, '$1')
+              .replace(/'/g, '"');
+            DEFAULT_DATA = JSON.parse(cleaned);
+          } catch(e2) {}
+        }
       }
       // Extract title
       var tMatch = html.match(/<title>([^<]+)<\/title>/);
@@ -53,11 +61,14 @@
     }
   }
 
-  // Wait for supabase-client to be ready, then init
+  // Wait for engine to be ready, then init
   function doInit() {
+    // Clear stale localStorage data to ensure fresh HTML data is used
+    // (the portal already cleared it, but extra safety here)
+    var storageKey = 'jm_custom_' + (id || '0');
     JourneyEngine.init('journey-table', {
       journeyId: id || 'custom',
-      storageKey: 'jm_custom_' + (id || '0'),
+      storageKey: storageKey,
       defaultData: DEFAULT_DATA,
       title: document.getElementById('journey-title').textContent
     });
