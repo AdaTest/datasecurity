@@ -55,6 +55,7 @@
     renderCards();
     setupUpload();
     checkCloudStatus();
+    loadFromCloud(); // Load uploaded journeys from Supabase
   }
 
   function loadJourneys() {
@@ -326,6 +327,34 @@
     if (text) {
       text.textContent = connected ? '云端已连接' : '离线模式';
     }
+  }
+
+  // Load uploaded journeys from Supabase
+  function loadFromCloud() {
+    if (!window._supabaseClient) return;
+    window._supabaseClient.from('journeys').select('*').then(function(res) {
+      if (res.error || !res.data) return;
+      var ids = {};
+      journeys.forEach(function(j) { ids[j.id] = true; });
+      var changed = false;
+      res.data.forEach(function(record) {
+        if (ids[record.id]) return;
+        // Skip built-in journeys
+        if (BUILTIN_JOURNEYS.some(function(bj) { return bj.id === record.id; })) return;
+        var data = record.data || {};
+        journeys.push({
+          id: record.id,
+          title: record.title || '未命名旅程',
+          file: 'journeys/custom.html?id=' + record.id,
+          phases: data.phases ? data.phases.length : 1,
+          stages: data.stages ? data.stages.length : 3,
+          color: randomColor()
+        });
+        ids[record.id] = true;
+        changed = true;
+      });
+      if (changed) renderCards();
+    });
   }
 
   // ═══════════════ UTILS ═══════════════

@@ -346,6 +346,9 @@
       if (window._supabaseClient && config.journeyId) {
         saveToSupabase();
       }
+
+      // Try to write back to HTML file
+      syncHtml(true);
     }, 100);
   }
 
@@ -476,6 +479,7 @@
   }
 
   var yamlFileHandle = null;
+  var htmlFileHandle = null;
   function syncYaml() {
     if (document.activeElement && document.activeElement.contentEditable === 'true') document.activeElement.blur();
     setTimeout(function() {
@@ -498,6 +502,68 @@
     handle.createWritable().then(function(w) {
       w.write(text).then(function() { w.close(); setStatus('YAML 已同步 ' + new Date().toLocaleTimeString()); toast('YAML 文件已更新'); });
     }).catch(function() { downloadYaml(text); toast('写入失败，已下载文件'); });
+  }
+
+  // ═══════════════ SYNC HTML ═══════════════
+  function syncHtml(silent) {
+    if (!window.showOpenFilePicker) {
+      if (!silent) toast('当前浏览器不支持直接写入本地文件');
+      return;
+    }
+    // Check existing handle permission
+    if (htmlFileHandle) {
+      htmlFileHandle.queryPermission({ mode: 'readwrite' }).then(function(perm) {
+        if (perm !== 'granted') {
+          return htmlFileHandle.requestPermission({ mode: 'readwrite' });
+        }
+        return 'granted';
+      }).then(function(p) {
+        if (p !== 'granted') htmlFileHandle = null;
+        doSyncHtml(silent);
+      }).catch(function() { htmlFileHandle = null; doSyncHtml(silent); });
+    } else {
+      doSyncHtml(silent);
+    }
+  }
+
+  function doSyncHtml(silent) {
+    if (!htmlFileHandle) {
+      if (silent) return;
+      window.showOpenFilePicker({
+        types: [{ description: 'HTML', accept: { 'text/html': ['.html', '.htm'] } }],
+        startIn: 'documents'
+      }).then(function(arr) {
+        htmlFileHandle = arr[0];
+        writeHtml(htmlFileHandle, silent);
+      }).catch(function(e) {
+        if (e.name !== 'AbortError') console.error(e);
+      });
+      return;
+    }
+    writeHtml(htmlFileHandle, silent);
+  }
+
+  function writeHtml(handle, silent) {
+    try {
+      var newDataJson = JSON.stringify(appData);
+      var newHtml = document.documentElement.outerHTML.replace(
+        /const DEFAULT_DATA = \{[\s\S]*?\};/,
+        'const DEFAULT_DATA = ' + newDataJson + ';'
+      );
+      handle.createWritable().then(function(w) {
+        w.write(newHtml).then(function() {
+          w.close();
+          setStatus('HTML 已更新 ' + new Date().toLocaleTimeString());
+          if (!silent) toast('本地 HTML 文件已更新，新浏览器打开也是最新内容');
+        });
+      }).catch(function(e) {
+        console.error('写入 HTML 失败:', e);
+        if (!silent) toast('写入失败，请检查文件是否被占用');
+      });
+    } catch(e) {
+      console.error('写入 HTML 失败:', e);
+      if (!silent) toast('写入失败，请检查文件是否被占用');
+    }
   }
 
   // ═══════════════ RESET ═══════════════
@@ -554,6 +620,7 @@
   JourneyEngine.toggleImportant = toggleImportant;
   JourneyEngine.saveData = saveData;
   JourneyEngine.syncYaml = syncYaml;
+  JourneyEngine.syncHtml = syncHtml;
   JourneyEngine.resetData = resetData;
   JourneyEngine.loadFromCloud = loadFromCloud;
   JourneyEngine.getData = function() { return appData; };
