@@ -142,6 +142,10 @@
       localStorage.removeItem('journey_html_' + id);
       localStorage.removeItem('jm_custom_' + id);
       localStorage.removeItem('jm_custom_' + id + '_cloud_ts');
+      // Also delete from Supabase
+      if (window._supabaseClient) {
+        window._supabaseClient.from('journeys').delete().eq('id', id).then(function() {});
+      }
     }
 
     journeys = journeys.filter(function(x) { return x.id !== id; });
@@ -156,29 +160,29 @@
   function copyBuiltinJourney(builtinId) {
     var bj = BUILTIN_JOURNEYS.find(function(b) { return b.id === builtinId; });
     if (!bj) return;
-
-    // Get current data (including any edits from localStorage)
     var editedData = localStorage.getItem(bj.storageKey);
     var newId = 'custom_' + Date.now();
 
     if (editedData) {
-      // Copy the edited data
       localStorage.setItem('jm_custom_' + newId, editedData);
-      console.log('📋 已复制内置旅程"' + bj.title + '"的当前编辑版');
+      if (window._supabaseClient) {
+        window._supabaseClient.from('journeys').upsert({
+          id: newId, title: bj.title + ' (副本)',
+          data: JSON.parse(editedData),
+          updated_at: new Date().toISOString()
+        }).then(function() {});
+      }
     }
 
     var newJourney = {
-      id: newId,
-      title: bj.title + ' (副本)',
+      id: newId, title: bj.title + ' (副本)',
       file: 'journeys/custom.html?id=' + newId,
-      phases: bj.phases,
-      stages: bj.stages,
-      color: bj.color
+      phases: bj.phases, stages: bj.stages, color: bj.color
     };
     journeys.push(newJourney);
     saveJourneyList();
     renderCards();
-    portalToast('✅ 已创建副本，包含当前所有编辑');
+    portalToast('✅ 已创建副本并同步云端');
   }
 
   window.copyBuiltinJourney = copyBuiltinJourney;
@@ -217,40 +221,49 @@
 
       var id = 'custom_' + Date.now();
       var fileName = file.name.replace(/\.(html|htm)$/i, '');
+      var title = parsed.title || fileName;
 
       // Save HTML to localStorage
       localStorage.setItem('journey_html_' + id, html);
 
       // Extract and save uploaded DEFAULT_DATA as journey data
       var dataMatch = html.match(/const\s+DEFAULT_DATA\s*=\s*(\{[\s\S]*?\});/);
+      var uploadedData = null;
       if (dataMatch) {
         try {
-          var fullData = JSON.parse(dataMatch[1]);
-          localStorage.setItem('jm_custom_' + id, JSON.stringify(fullData));
+          uploadedData = JSON.parse(dataMatch[1]);
+          localStorage.setItem('jm_custom_' + id, JSON.stringify(uploadedData));
         } catch(ex) {}
       }
 
+      // Auto-sync to Supabase
+      if (window._supabaseClient && uploadedData) {
+        window._supabaseClient.from('journeys').upsert({
+          id: id, title: title, data: uploadedData,
+          updated_at: new Date().toISOString()
+        }).then(function(res) {
+          if (res.error) console.warn('Sync failed:', res.error);
+          else console.log('☁️ 已同步到云端:', title);
+        });
+      }
+
       var newJourney = {
-        id: id,
-        title: parsed.title || fileName,
+        id: id, title: title,
         file: 'journeys/custom.html?id=' + id,
-        phases: parsed.phases || 1,
-        stages: parsed.stages || 3,
+        phases: parsed.phases || 1, stages: parsed.stages || 3,
         color: randomColor()
       };
       journeys.push(newJourney);
       saveJourneyList();
       renderCards();
-      portalToast('✅ 旅程 "' + newJourney.title + '" 已添加');
+      portalToast('✅ 旅程 "' + title + '" 已添加并同步云端');
     };
     reader.readAsText(file);
   }
 
   function parseJourneyHtml(html) {
     var match = html.match(/const\s+DEFAULT_DATA\s*=\s*(\{[\s\S]*?\});/);
-    if (!match) {
-      match = html.match(/DEFAULT_DATA\s*=\s*(\{[\s\S]*?\});/);
-    }
+    if (!match) match = html.match(/DEFAULT_DATA\s*=\s*(\{[\s\S]*?\});/);
     if (!match) return null;
 
     try {
@@ -271,9 +284,7 @@
           phases: data.phases ? data.phases.length : 1,
           stages: data.stages ? data.stages.length : 3
         };
-      } catch(e2) {
-        return null;
-      }
+      } catch(e2) { return null; }
     }
   }
 
@@ -299,7 +310,6 @@
       cloudConnected = false;
       updateStatusDot(false);
     }
-
     document.addEventListener('supabase-ready', function(e) {
       cloudConnected = e.detail.connected;
       updateStatusDot(cloudConnected);
